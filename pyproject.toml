@@ -1,0 +1,60 @@
+[project]
+    name = "molgrep"
+    dynamic = ["version"]
+    description = "a grep for molecules: simple substructure search CLI"
+    authors = [
+        { name = "Ivan Tubert-Brohman", email = "ivan.tubert@gmail.com" }
+    ]
+    readme = "README.md"
+    requires-python = ">= 3.11"
+    dependencies = [
+        "molcat>=0.3.0",
+        "rdkit",
+    ]
+    classifiers = [
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Science/Research",
+        "Topic :: Scientific/Engineering :: Chemistry",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: BSD License",
+        "Programming Language :: Python :: 3",
+        "Environment :: Console",
+        "Natural Language :: English",
+    ]
+
+[project.urls]
+    source = "https://github.com/i-tub/molgrep"
+
+[project.scripts]
+    molgrep = "molgrep:main"
+
+[build-system]
+    requires = ["hatchling"]
+    build-backend = "hatchling.build"
+
+[tool.hatch.version]
+    path = "src/molgrep/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+    include = [
+        "src",
+        "tests",
+    ]
+
+[tool.hatch.build.targets.wheel]
+    packages = ["src/molgrep"]
+
+[tool.pytest.ini_options]
+    testpaths = ["tests"]
+    python_files = "test_*.py"
+    addopts = "--strict-markers"
+
+[dependency-groups]
+    dev = [
+        "pytest>=8.0",
+        "flake8",
+        "ipython",
+        "more_itertools",
+        "mypy",
+        "yapf",
+    ]
