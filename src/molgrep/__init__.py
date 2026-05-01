@@ -39,10 +39,12 @@ def parse_args(argv=None):
                         help='maximum matches to report per structure')
     # parser.add_argument('--max-per-file', '-M', type=int,
     #     help='maximum matches to report per file')  # TODO
-    parser.add_argument('--matched-file', '-o',
+    parser.add_argument('--matched-file',
+                        '-o',
                         metavar='<filename>',
                         help='file to write structures matching the SMARTS')
-    parser.add_argument('--unmatched-file', '-O',
+    parser.add_argument('--unmatched-file',
+                        '-O',
                         metavar='<filename>',
                         help='file to write structures that did not match')
     parser.add_argument('--count-per-mol',
