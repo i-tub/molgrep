@@ -1,11 +1,13 @@
 """
-Find molecules matching a SMARTS. Results may be shown as a table, as images, or
-written to structure files.
+Find molecules matching a SMARTS. Results may be shown as a table, as images,
+or written to structure files.
 """
 
 import argparse
+import collections
 import itertools
 import os
+import string
 from dataclasses import dataclass
 from typing import Any
 
@@ -48,9 +50,14 @@ def parse_args(argv=None):
                         help='only count the number of matches per molecule')
     # parser.add_argument('--count-per-file', '-C', action='store_true',
     #     help='only count the number of matches per file')  # TODO
-    parser.add_argument('--format',
-                        '-f',
-                        help='formatting string for text output')
+    parser.add_argument(
+        '--format',
+        '-f',
+        help='formatting string for text output as a Python format string. '
+        'The following keys are supported: '
+        'name, file, index, smiles, count, match; '
+        'properties can be specified by adding the "p_" prefix. '
+        f'Default: "{DEFAULT_FMT}", or "{DEFAULT_COUNT_FMT}" when using -c.')
     parser.add_argument(
         '--union',
         '-u',
@@ -94,36 +101,49 @@ def get_png_with_match(mol: Chem.Mol, match,
     return d.GetDrawingText()
 
 
+def format_result(fmt, rec, *, match=None, count=None):
+    mol = rec.mol
+    try:
+        name = mol.GetProp('_Name')
+    except KeyError:
+        name = ''
+    smiles = Chem.MolToSmiles(mol)
+    props = {f'p_{k}': v for k, v in mol.GetPropsAsDict().items()}
+    match_str = ','.join(map(str, match)) if match else ''
+    formatter = string.Formatter()
+    kwargs = collections.defaultdict(str)
+    kwargs.update(
+        file=rec.file,
+        index=rec.index,
+        name=name,
+        smiles=smiles,
+        count=count,
+        match=match_str,
+        **props,
+    )
+    return formatter.vformat(fmt, [], kwargs)
+
+
 def main():
     args = parse_args()
     size = molcat.determine_size(args.size_x)
     query = Chem.MolFromSmarts(args.smarts)
     for rec in get_mol_records(args.files_or_smiles):
         matches = rec.mol.GetSubstructMatches(query)
-        try:
-            name = rec.mol.GetProp('_Name')
-        except KeyError:
-            name = ''
+        count = len(matches)
 
         if args.union and matches:
             matches = [sorted(set(itertools.chain.from_iterable(matches)))]
 
         if matches and args.count_per_mol:
             fmt = args.format or DEFAULT_COUNT_FMT
-            print(
-                fmt.format(file=rec.file,
-                           index=rec.index,
-                           count=len(matches),
-                           name=name))
+            print(format_result(fmt, rec, count=count))
             continue
 
         for match_idx, match in enumerate(matches, 1):
             fmt = args.format or DEFAULT_FMT
-            print(
-                fmt.format(file=rec.file,
-                           index=rec.index,
-                           match=match,
-                           name=name))
+            print(format_result(fmt, rec, match=match, count=count))
+
             if args.image:
                 mol2d = molcat.to_2d(rec.mol)
                 png_data = get_png_with_match(mol2d, match, size)
