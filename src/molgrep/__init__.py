@@ -16,7 +16,7 @@ import molcat
 from rdkit import Chem
 from rdkit.Chem.Draw import rdMolDraw2D
 
-__version__ = '0.1.0'
+__version__ = '0.1.1'
 
 DEFAULT_FMT = '{file} {index} {match}'
 DEFAULT_COUNT_FMT = '{file} {index} {count}'
