@@ -9,5 +9,5 @@ searching, to make it easy to do substructure searches from the command line.
 Note: showing images requires a terminal supporting the graphics protocol used
 by kitty, Ghostty and iTerm2, among others.
 
-![Screenshot of terminal showing molgrep search for CF](https://raw.githubusercontent.com/i-tub/molgrep/master/molgrep`.png)
+![Screenshot of terminal showing molgrep search for CF](https://raw.githubusercontent.com/i-tub/molgrep/master/molgrep.png)
 
