@@ -5,6 +5,7 @@ or written to structure files.
 
 import argparse
 import collections
+import gzip
 import itertools
 import os
 import string
@@ -38,12 +39,12 @@ def parse_args(argv=None):
                         help='maximum matches to report per structure')
     # parser.add_argument('--max-per-file', '-M', type=int,
     #     help='maximum matches to report per file')  # TODO
-    parser.add_argument('--matched',
+    parser.add_argument('--matched-file', '-o',
                         metavar='<filename>',
                         help='file to write structures matching the SMARTS')
-    parser.add_argument('--not_matched',
+    parser.add_argument('--unmatched-file', '-O',
                         metavar='<filename>',
-                        help='file to write structure that did not match')
+                        help='file to write structures that did not match')
     parser.add_argument('--count-per-mol',
                         '-c',
                         action='store_true',
@@ -101,6 +102,24 @@ def get_png_with_match(mol: Chem.Mol, match,
     return d.GetDrawingText()
 
 
+def get_writer(filename):
+    """
+    Return a Mol supplier for the given filename.
+    """
+    if filename.endswith('.smi'):
+        return Chem.SmilesWriter(filename, includeHeader=False)
+    elif filename.endswith('.csv'):
+        return Chem.SmilesWriter(filename, delimiter=',')
+    elif filename.endswith('.sdf') or filename.endswith('.mol'):
+        return Chem.SDWriter(filename)
+    elif filename.endswith('.mae'):
+        return Chem.MaeWriter(filename)
+    elif filename.endswith('.maegz') or filename.endswith('.mae.gz'):
+        return Chem.MaeWriter(gzip.open(filename, 'w'))
+    else:
+        raise ValueError(f'Unknown file format for {filename}')
+
+
 def format_result(fmt, rec, *, match=None, count=None):
     mol = rec.mol
     try:
@@ -124,13 +143,18 @@ def format_result(fmt, rec, *, match=None, count=None):
     return formatter.vformat(fmt, [], kwargs)
 
 
-def main():
-    args = parse_args()
+def _run(args, matched_writer, unmatched_writer):
     size = molcat.determine_size(args.size_x)
     query = Chem.MolFromSmarts(args.smarts)
+
     for rec in get_mol_records(args.files_or_smiles):
         matches = rec.mol.GetSubstructMatches(query)
         count = len(matches)
+
+        if matched_writer and matches:
+            matched_writer.write(rec.mol)
+        if unmatched_writer and not matches:
+            unmatched_writer.write(rec.mol)
 
         if args.union and matches:
             matches = [sorted(set(itertools.chain.from_iterable(matches)))]
@@ -150,3 +174,21 @@ def main():
                 molcat.show_image(png_data)
             if args.max_per_mol and match_idx == args.max_per_mol:
                 break
+
+
+def main():
+    args = parse_args()
+
+    matched_writer = unmatched_writer = None
+    if args.matched_file:
+        matched_writer = get_writer(args.matched_file)
+    if args.unmatched_file:
+        unmatched_writer = get_writer(args.unmatched_file)
+
+    try:
+        _run(args, matched_writer, unmatched_writer)
+    finally:
+        if matched_writer:
+            matched_writer.close()
+        if unmatched_writer:
+            unmatched_writer.close()
